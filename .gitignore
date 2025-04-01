@@ -1,0 +1,44 @@
+# Qdrant storage
+.qdrant_data/
+services/**/.qdrant_data/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# VSCode & IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Docker
+**/app/__pycache__/
+**/app/*.pyc
+docker/.env
+.env
+.env.*
+
+# FastAPI/Python-specific
+instance/
+*.db
+
+# Pre-commit
+.pre-commit-config.yaml
+.pre-commit-cache/
+
+# Tests
+.coverage
+htmlcov/
+.tox/
+pytest_cache/
