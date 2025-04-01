@@ -1,4 +1,7 @@
 name: Run Tests
+  run: poetry run pytest
+  env:
+    PYTHONPATH: src
 
 on:
   push:
