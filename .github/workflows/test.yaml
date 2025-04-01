@@ -1,7 +1,4 @@
-- name: Run Tests
-  run: poetry run pytest
-  env:
-    PYTHONPATH: src
+name: Run Tests
 
 on:
   push:
@@ -29,3 +26,5 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest
+        env:
+          PYTHONPATH: src
