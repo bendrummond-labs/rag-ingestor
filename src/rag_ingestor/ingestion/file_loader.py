@@ -1,71 +1,35 @@
 from pathlib import Path
-import os
 import logging
+from typing import Callable, Dict, List
+from langchain.docstore.document import Document
+from importlib import import_module
+
 
 logger = logging.getLogger(__name__)
 
-# Define supported file types
-_SUPPORTED_EXTENSIONS = {
-    ".txt": "text/plain",
-    ".md": "text/markdown",
-    ".csv": "text/csv",
-    # Add more supported file types as needed
-}
+
+_LOADER_REGISTRY: Dict[str, Callable[[str], List[Document]]] = {}
 
 
-def supported_file_types():
-    """Return a list of supported file extensions"""
-    return list(_SUPPORTED_EXTENSIONS.keys())
+def register_loader(extension: str):
+    def wrapper(fn: Callable[[str], List[Document]]):
+        _LOADER_REGISTRY[extension.lower()] = fn
+        return fn
+
+    return wrapper
 
 
-def detect_file_type(filename):
-    """
-    Detect file type from filename
-
-    Args:
-        filename (str): Name of the file
-
-    Returns:
-        str: Mime type of the file
-
-    Raises:
-        ValueError: If file type is not supported
-    """
-    ext = os.path.splitext(filename.lower())[1]
-    if ext not in _SUPPORTED_EXTENSIONS:
-        supported = ", ".join(supported_file_types())
-        raise ValueError(
-            f"Unsupported file type: {ext}. Supported types are: {supported}"
-        )
-
-    return _SUPPORTED_EXTENSIONS[ext]
+def load_file(path: str) -> List[Document]:
+    ext = Path(path).suffix.lower()
+    if ext not in _LOADER_REGISTRY:
+        supported = ", ".join(_LOADER_REGISTRY.keys())
+        raise ValueError(f"Unsupported file type '{ext}'. Supported: {supported}")
+    return _LOADER_REGISTRY[ext](path)
 
 
-def load_text_file(path: str) -> str:
-    """
-    Load text from a file
+def _load_all_loaders():
+    for module in ["text_loader", "pdf_loader", "csv_loader"]:
+        import_module(f"rag_ingestor.ingestion.loaders.{module}")
 
-    Args:
-        path (str): Path to the file
 
-    Returns:
-        str: Content of the file
-
-    Raises:
-        FileNotFoundError: If file does not exist
-        UnicodeDecodeError: If file cannot be decoded as UTF-8
-    """
-    file_path = Path(path)
-
-    if not file_path.exists():
-        logger.error(f"File not found: {path}")
-        raise FileNotFoundError(f"File {path} not found.")
-
-    logger.info(f"Loading file: {path}")
-    try:
-        content = file_path.read_text(encoding="utf-8")
-        logger.info(f"Successfully loaded {len(content)} characters from {path}")
-        return content
-    except UnicodeDecodeError:
-        logger.error(f"Failed to decode file {path} as UTF-8")
-        raise
+_load_all_loaders()
