@@ -5,10 +5,12 @@ from fastapi import (
     Query,
 )
 
-from rag_ingestor.adapters.splitters.base import SPLITTER_SERVICE_REGISTRY
-from rag_ingestor.adapters.loaders.base import _LOADER_REGISTRY
 from rag_ingestor.schemas import IngestResponse
-from rag_ingestor.services.ingestion_service import get_ingestion_service
+from rag_ingestor.di_container import (
+    get_ingestion_service,
+    get_loader_manager,
+    get_splitter_manager,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["ingestor"])
 
@@ -26,12 +28,14 @@ async def get_supported_files():
     """
     Returns list of supported file extensions for ingestion
     """
-    return {"supported_file_types": list(_LOADER_REGISTRY.keys())}
+    loader_manager = get_loader_manager()
+    return {"supported_file_types": list(loader_manager.loaders.keys())}
 
 
 @router.get("/splitter-types")
 async def get_splitter_types():
-    return {"available_splitters": list(SPLITTER_SERVICE_REGISTRY.keys())}
+    splitter_manager = get_splitter_manager()
+    return {"available_splitters": list(splitter_manager.splitter_types.keys())}
 
 
 @router.post("/ingest")

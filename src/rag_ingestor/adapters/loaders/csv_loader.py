@@ -1,7 +1,10 @@
-from langchain_community.document_loaders import CSVLoader
-from rag_ingestor.adapters.loaders.base import register_loader
+from typing import List
+from langchain_community.document_loaders import CSVLoader as LangchainCSVLoader
+from langchain_core.documents import Document
+
+from rag_ingestor.adapters.loaders.base import BaseDocumentLoader
 
 
-@register_loader(".csv")
-def load_csv_file(path: str):
-    return CSVLoader(path).load()
+class CSVLoader(BaseDocumentLoader):
+    def load(self, path: str) -> List[Document]:
+        return LangchainCSVLoader(path).load()

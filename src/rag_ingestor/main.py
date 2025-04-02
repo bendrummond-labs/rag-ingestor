@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from rag_ingestor.config import settings, logger
 from rag_ingestor.routes import router
-from rag_ingestor.adapters.queue.factory import get_message_queue
+from rag_ingestor.di_container import initialize_container, shutdown_container
 
 
 @asynccontextmanager
@@ -14,19 +14,16 @@ async def lifespan(app: FastAPI):
     Args:
         app: FastAPI application
     """
-    # On startup: Initialize services
+    # On startup: Initialize services using the DI container
     logger.info("Initializing services...")
-    # Choose the message queue implementation you want to use
-    message_queue = get_message_queue(queue_type="kafka")
-    await message_queue.initialize()
-    app.state.message_queue = message_queue
+    await initialize_container()
     logger.info("Services initialized")
 
     yield
 
-    # On shutdown: Clean up resources
+    # On shutdown: Clean up resources using the DI container
     logger.info("Shutting down services...")
-    await message_queue.shutdown()
+    await shutdown_container()
     logger.info("Services shutdown complete")
 
 

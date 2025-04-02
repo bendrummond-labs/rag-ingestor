@@ -1,13 +1,12 @@
 from typing import Dict, List
 import uuid
+import logging
 from fastapi import UploadFile, HTTPException, status
 
-
-from rag_ingestor.config import settings, logger
+from rag_ingestor.config import settings
 from rag_ingestor.schemas import IngestResponse
 from rag_ingestor.services.document_service import DocumentService
 from rag_ingestor.adapters.queue.base import MessageQueue
-from rag_ingestor.adapters.queue.factory import get_message_queue
 
 
 class IngestionService:
@@ -16,9 +15,16 @@ class IngestionService:
         document_service: DocumentService,
         message_queue: MessageQueue,
     ):
+        """
+        Initialize the ingestion service
+
+        Args:
+            document_service: Service for document processing
+            message_queue: Queue for sending messages
+        """
         self.document_service = document_service
         self.message_queue = message_queue
-        self.logger = logger.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
     async def send_chunks_to_queue(self, file_id: str, chunks: List[Dict]) -> bool:
         try:
@@ -72,16 +78,3 @@ class IngestionService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Failed to process file: {str(e)}",
             )
-
-
-#######GOTTTA CAHNGE THIS#########
-def get_ingestion_service() -> IngestionService:
-    """
-    Factory function to create and configure an ingestion service
-
-    Returns:
-        IngestionService: Configured ingestion service
-    """
-    document_service = DocumentService()
-    message_queue = get_message_queue()  # <- reverse dependency injection
-    return IngestionService(document_service, message_queue)

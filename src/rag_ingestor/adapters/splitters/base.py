@@ -1,20 +1,21 @@
+# src/rag_ingestor/adapters/splitters/base.py
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Type, Dict
+from typing import Iterable, List
 from langchain_core.documents import Document
 
 
-class BaseSplitterService(ABC):
+class TextSplitter(ABC):
+    """Base interface for text splitters"""
+
     @abstractmethod
     def split_documents(self, documents: Iterable[Document]) -> List[Document]:
+        """
+        Split documents into chunks
+
+        Args:
+            documents: Documents to split
+
+        Returns:
+            List of split document chunks
+        """
         pass
-
-
-SPLITTER_SERVICE_REGISTRY: Dict[str, Type[BaseSplitterService]] = {}
-
-
-def register_splitter(splitter_type: str):
-    def decorator(cls: Type[BaseSplitterService]):
-        SPLITTER_SERVICE_REGISTRY[splitter_type] = cls
-        return cls
-
-    return decorator

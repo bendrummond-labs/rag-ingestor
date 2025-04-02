@@ -1,7 +1,10 @@
+from typing import List
 from langchain_community.document_loaders import UnstructuredPDFLoader
-from rag_ingestor.adapters.loaders.base import register_loader
+from langchain_core.documents import Document
+
+from rag_ingestor.adapters.loaders.base import BaseDocumentLoader
 
 
-@register_loader(".pdf")
-def load_pdf_file(path: str):
-    return UnstructuredPDFLoader(path).load()
+class PDFLoader(BaseDocumentLoader):
+    def load(self, path: str) -> List[Document]:
+        return UnstructuredPDFLoader(path).load()
