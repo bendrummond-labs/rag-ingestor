@@ -42,3 +42,4 @@ instance/
 htmlcov/
 .tox/
 pytest_cache/
+test.txt

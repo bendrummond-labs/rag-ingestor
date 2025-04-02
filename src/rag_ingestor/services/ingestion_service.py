@@ -1,4 +1,5 @@
 import datetime
+from typing import Dict, List
 import uuid
 from pathlib import Path
 from fastapi import UploadFile, HTTPException, status
@@ -78,35 +79,23 @@ def load_documents_from_bytes(contents: bytes, file_extension: str):
                 logger.warning(f"Failed to remove temporary file {temp_path}: {e}")
 
 
-async def _send_to_kafka(file_id: str, chunks):
-    """Helper to send document chunks to Kafka"""
-    producer = KafkaProducerService(topic=settings.KAFKA_TOPIC_EMBEDDINGS)
+async def _send_chunks_to_kafka(file_id: str, chunks: List[Dict]):
     try:
-        await producer.start()
-
-        serializable_chunks = []
-        for chunk in chunks:
-            # Handle LangChain documents
-            if hasattr(chunk, "page_content") and hasattr(chunk, "metadata"):
-                serializable_chunks.append(
-                    {"page_content": chunk.page_content, "metadata": chunk.metadata}
-                )
-            # Handle other types
-            else:
-                serializable_chunks.append(str(chunk))
-
+        producer = await KafkaProducerService.get_instance(
+            topic=settings.KAFKA_TOPIC_EMBEDDINGS
+        )
         await producer.send(
             {
                 "file_id": file_id,
                 "timestamp": datetime.datetime.now().isoformat(),
-                "documents": serializable_chunks,
+                "documents": chunks,
             }
         )
         logger.info(
-            f"Sent {len(serializable_chunks)} chunks to Kafka topic '{settings.KAFKA_TOPIC_EMBEDDINGS}'"
+            f"Sent {len(chunks)} chunks to Kafka topic '{settings.KAFKA_TOPIC_EMBEDDINGS}'"
         )
-    finally:
-        await producer.stop()
+    except Exception as e:
+        logger.error(f"Failed to send chunks to Kafka: {str(e)}")
 
 
 async def ingest(
@@ -147,9 +136,11 @@ async def ingest(
             f"File processed: original docs={len(documents)}, chunks={len(chunks)}"
         )
 
-        # Queue for async processing
-        if settings.ENABLE_KAFKA:
-            await _send_to_kafka(file_id, chunks)
+        await _send_chunks_to_kafka(file_id, chunks)
+        logger.info(
+            f"File {file.filename} ingested successfully. "
+            f"Chunks sent to Kafka topic '{settings.KAFKA_TOPIC_EMBEDDINGS}'"
+        )
 
         return IngestResponse(
             status="processing",
