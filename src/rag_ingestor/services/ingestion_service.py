@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from pathlib import Path
 from fastapi import UploadFile, HTTPException, status
@@ -79,17 +80,30 @@ def load_documents_from_bytes(contents: bytes, file_extension: str):
 
 async def _send_to_kafka(file_id: str, chunks):
     """Helper to send document chunks to Kafka"""
-    producer = KafkaProducerService(topic="embedding-jobs")
+    producer = KafkaProducerService(topic=settings.KAFKA_TOPIC_EMBEDDINGS)
     try:
         await producer.start()
+
+        serializable_chunks = []
+        for chunk in chunks:
+            # Handle LangChain documents
+            if hasattr(chunk, "page_content") and hasattr(chunk, "metadata"):
+                serializable_chunks.append(
+                    {"page_content": chunk.page_content, "metadata": chunk.metadata}
+                )
+            # Handle other types
+            else:
+                serializable_chunks.append(str(chunk))
+
         await producer.send(
             {
                 "file_id": file_id,
-                "documents": [
-                    chunk.to_dict() if hasattr(chunk, "to_dict") else str(chunk)
-                    for chunk in chunks
-                ],
+                "timestamp": datetime.datetime.now().isoformat(),
+                "documents": serializable_chunks,
             }
+        )
+        logger.info(
+            f"Sent {len(serializable_chunks)} chunks to Kafka topic '{settings.KAFKA_TOPIC_EMBEDDINGS}'"
         )
     finally:
         await producer.stop()

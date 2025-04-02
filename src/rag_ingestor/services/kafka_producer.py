@@ -1,8 +1,7 @@
 import logging
+import json
 from typing import Any, Dict
-
 from aiokafka import AIOKafkaProducer
-from orjson import dumps
 
 from rag_ingestor.config import settings
 
@@ -15,17 +14,26 @@ class KafkaProducerService:
         self._producer: AIOKafkaProducer | None = None
 
     async def start(self):
-        self._producer = AIOKafkaProducer(
-            bootstrap_servers=settings.KAFKA_BROKER_URL,
-            value_serializer=lambda v: dumps(v),
-        )
-        await self._producer.start()
-        logger.info("Kafka producer started")
+        try:
+            self._producer = AIOKafkaProducer(
+                bootstrap_servers=settings.KAFKA_BROKER_URL,
+                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            )
+            await self._producer.start()
+            logger.info(
+                f"Kafka producer started, connected to {settings.KAFKA_BROKER_URL}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to start Kafka producer: {str(e)}")
+            raise
 
     async def stop(self):
         if self._producer:
-            await self._producer.stop()
-            logger.info("Kafka producer stopped")
+            try:
+                await self._producer.stop()
+                logger.info("Kafka producer stopped")
+            except Exception as e:
+                logger.error(f"Error stopping Kafka producer: {str(e)}")
 
     async def send(self, message: Dict[str, Any]):
         if not self._producer:
