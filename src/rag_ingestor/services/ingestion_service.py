@@ -6,7 +6,8 @@ from fastapi import UploadFile, HTTPException, status
 from rag_ingestor.config import settings, logger
 from rag_ingestor.schemas import IngestResponse
 from rag_ingestor.services.document_service import DocumentService
-from rag_ingestor.adapters.queue.base import MessageQueue, get_message_queue
+from rag_ingestor.adapters.queue.base import MessageQueue
+from rag_ingestor.adapters.queue.factory import get_message_queue
 
 
 class IngestionService:

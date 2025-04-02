@@ -17,9 +17,9 @@ async def lifespan(app: FastAPI):
     # On startup: Initialize services
     logger.info("Initializing services...")
     # Choose the message queue implementation you want to use
-    message_queue = get_message_queue(queue_type="kafka")  # or "memory" for testing
+    message_queue = get_message_queue(queue_type="kafka")
     await message_queue.initialize()
-    app.state.message_queue = message_queue  # Store for use in route handlers if needed
+    app.state.message_queue = message_queue
     logger.info("Services initialized")
 
     yield
