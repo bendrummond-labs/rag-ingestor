@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB default
 
     KAFKA_BROKER_URL: str = "kafka:9092"
+    ENABLE_KAFKA: bool = True
 
     # Processing settings
     DEFAULT_CHUNK_SIZE: int = 500
