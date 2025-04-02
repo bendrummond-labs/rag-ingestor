@@ -8,17 +8,34 @@ from rag_ingestor.config import settings
 logger = logging.getLogger(__name__)
 
 
-class KafkaProducerService:
+class KafkaService:
+    """Service for interacting with Kafka message broker"""
+
     # Class variable to store the singleton instances (one per topic)
-    _instances: ClassVar[Dict[str, "KafkaProducerService"]] = {}
+    _instances: ClassVar[Dict[str, "KafkaService"]] = {}
 
     def __init__(self, topic: str):
+        """
+        Initialize a Kafka service for a specific topic
+
+        Args:
+            topic: The Kafka topic name
+        """
         self.topic = topic
         self._producer: Optional[AIOKafkaProducer] = None
         self._started = False
 
     @classmethod
-    async def get_instance(cls, topic: str) -> "KafkaProducerService":
+    async def get_instance(cls, topic: str) -> "KafkaService":
+        """
+        Get or create a Kafka service instance for a specific topic
+
+        Args:
+            topic: The Kafka topic name
+
+        Returns:
+            KafkaService: A Kafka service instance
+        """
         if topic not in cls._instances:
             instance = cls(topic)
             cls._instances[topic] = instance
@@ -28,18 +45,20 @@ class KafkaProducerService:
 
     @classmethod
     async def shutdown_all(cls) -> None:
+        """Shutdown all Kafka service instances"""
         for instance in cls._instances.values():
             await instance.stop()
 
         cls._instances.clear()
 
     async def start(self) -> None:
+        """Start the Kafka producer"""
         if self._started:
             return
 
         try:
             self._producer = AIOKafkaProducer(
-                bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+                bootstrap_servers=settings.KAFKA_BROKER_URL,
                 value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             )
             await self._producer.start()
@@ -55,6 +74,7 @@ class KafkaProducerService:
             raise
 
     async def stop(self) -> None:
+        """Stop the Kafka producer"""
         if not self._started or not self._producer:
             return
 
@@ -68,6 +88,16 @@ class KafkaProducerService:
             )
 
     async def send(self, message: Dict[str, Any]) -> None:
+        """
+        Send a message to the Kafka topic
+
+        Args:
+            message: The message to send
+
+        Raises:
+            RuntimeError: If the producer is not started
+            Exception: If sending the message fails
+        """
         if not self._started or not self._producer:
             raise RuntimeError(f"Kafka producer for topic '{self.topic}' not started")
 
