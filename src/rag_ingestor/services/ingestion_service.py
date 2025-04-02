@@ -74,6 +74,7 @@ class IngestionService:
             )
 
 
+#######GOTTTA CAHNGE THIS#########
 def get_ingestion_service() -> IngestionService:
     """
     Factory function to create and configure an ingestion service
@@ -82,5 +83,5 @@ def get_ingestion_service() -> IngestionService:
         IngestionService: Configured ingestion service
     """
     document_service = DocumentService()
-    message_queue = get_message_queue()
+    message_queue = get_message_queue()  # <- reverse dependency injection
     return IngestionService(document_service, message_queue)

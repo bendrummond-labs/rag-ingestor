@@ -8,7 +8,7 @@ from fastapi import (
 from rag_ingestor.adapters.splitters.base import SPLITTER_SERVICE_REGISTRY
 from rag_ingestor.adapters.loaders.base import _LOADER_REGISTRY
 from rag_ingestor.schemas import IngestResponse
-from rag_ingestor.services.ingestion_service import ingest
+from rag_ingestor.services.ingestion_service import get_ingestion_service
 
 router = APIRouter(prefix="/api/v1", tags=["ingestor"])
 
@@ -41,7 +41,10 @@ async def ingest_document(
     chunk_overlap: int = Query(100),
     splitter_type: str = Query("plain"),
 ):
-    response = await ingest(file, splitter_type, chunk_size, chunk_overlap)
+    ingestions_service = get_ingestion_service()
+    response = await ingestions_service.ingest(
+        file, splitter_type, chunk_size, chunk_overlap
+    )
 
     return IngestResponse(
         status="processing",
