@@ -1,5 +1,5 @@
 from langchain_community.document_loaders import TextLoader
-from rag_ingestor.ingestion.file_loader import register_loader
+from rag_ingestor.adapters.loaders.base import register_loader
 
 
 @register_loader(".txt")

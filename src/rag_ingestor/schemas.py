@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from rag_ingestor.ingestion.text_splitter import SplitterType
+from typing import List
+from langchain_core.documents import Document
 
 
 class IngestRequest(BaseModel):
@@ -11,7 +12,8 @@ class IngestResponse(BaseModel):
     status: str
     file_id: str
     num_chunks: int
-    splitter_type: SplitterType = SplitterType.RECURSIVE
+    splitter_type: str
+    documents: List[Document]
 
 
 class JobStatus(BaseModel):

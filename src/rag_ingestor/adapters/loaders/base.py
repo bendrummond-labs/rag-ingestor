@@ -29,7 +29,7 @@ def load_file(path: str) -> List[Document]:
 
 def _load_all_loaders():
     for module in ["text_loader", "pdf_loader", "csv_loader"]:
-        import_module(f"rag_ingestor.ingestion.loaders.{module}")
+        import_module(f"rag_ingestor.adapters.loaders.{module}")
 
 
 _load_all_loaders()
