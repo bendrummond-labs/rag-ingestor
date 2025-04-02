@@ -1,8 +1,9 @@
-from typing import List
+from typing import Iterable, List
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from rag_ingestor.adapters.splitters.base import BaseSplitterService, register_splitter
+from langchain_core.documents import Document
 
 
 @register_splitter("plain")
@@ -14,5 +15,5 @@ class PlainTextSplitterService(BaseSplitterService):
             separators=["\n\n", "\n", ". ", " ", ""],
         )
 
-    def split_text(self, text: str) -> List[str]:
-        return self.splitter.split_text(text)
+    def split_documents(self, documents: Iterable[Document]) -> List[Document]:
+        return self.splitter.split_documents(documents)

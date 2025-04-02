@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 from typing import Callable, Dict, List
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from importlib import import_module
 
 

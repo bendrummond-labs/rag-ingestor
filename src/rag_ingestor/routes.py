@@ -2,7 +2,6 @@ from fastapi import (
     APIRouter,
     UploadFile,
     File,
-    BackgroundTasks,
     Query,
 )
 
@@ -37,19 +36,17 @@ async def get_splitter_types():
 
 @router.post("/ingest")
 async def ingest_document(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     chunk_size: int = Query(500),
     chunk_overlap: int = Query(100),
     splitter_type: str = Query("plain"),
 ):
-    response = ingest(file, splitter_type, chunk_size, chunk_overlap)
+    response = await ingest(file, splitter_type, chunk_size, chunk_overlap)
 
     return IngestResponse(
         status="processing",
         file_id=response.file_id,
         num_chunks=response.num_chunks,
-        splitter_type=response.splitter_type,
     )
 
 

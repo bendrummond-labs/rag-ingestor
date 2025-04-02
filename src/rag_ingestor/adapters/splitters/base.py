@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import List, Type, Dict
+from typing import Iterable, List, Type, Dict
+from langchain_core.documents import Document
 
 
 class BaseSplitterService(ABC):
     @abstractmethod
-    def split_text(self, text: str) -> List[str]:
+    def split_documents(self, documents: Iterable[Document]) -> List[Document]:
         pass
 
 

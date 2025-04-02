@@ -1,12 +1,12 @@
 import uuid
 from pathlib import Path
 from fastapi import UploadFile, HTTPException, status
+import tempfile
 
 from rag_ingestor.config import settings, logger
 from rag_ingestor.adapters.loaders.base import _LOADER_REGISTRY
 from rag_ingestor.adapters.splitters.factory import get_splitter_service
 from rag_ingestor.schemas import IngestResponse
-from rag_ingestor.services.kafka_producer import KafkaProducerService
 
 
 def validate_chunking(chunk_size: int, chunk_overlap: int):
@@ -55,9 +55,17 @@ async def ingest(
     contents = read_file_contents(file)
     logger.info(f"File read: {file.filename}, size={len(contents)} bytes")
 
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
+        temp_file.write(contents)
+        temp_path = temp_file.name
+
     try:
         loader = _LOADER_REGISTRY[ext]
-        text = loader.load(contents)
+        documents = loader(temp_path)
+
+        splitter = get_splitter_service(splitter_type, chunk_size, chunk_overlap)
+        chunks = splitter.split_documents(documents)
+
     except Exception as e:
         logger.error(f"Error loading file: {e}")
         raise HTTPException(
@@ -65,27 +73,23 @@ async def ingest(
             detail=f"Failed to load file: {str(e)}",
         )
 
-    splitter = get_splitter_service(splitter_type, chunk_size, chunk_overlap)
-    documents = splitter.create_documents([text])
     logger.info(
         f"Split into {len(documents)} documents using '{splitter_type}' splitter"
     )
 
     # Send to Kafka for async processing
-    producer = KafkaProducerService(topic="embedding-jobs")
-    await producer.start()
-    await producer.send(
-        {
-            "file_id": file_id,
-            "documents": [doc.dict() for doc in documents],
-        }
-    )
-    await producer.stop()
+    # producer = KafkaProducerService(topic="embedding-jobs")
+    # await producer.start()
+    # await producer.send(
+    #     {
+    #         "file_id": file_id,
+    #         "documents": chunks,
+    #     }
+    # )
+    # await producer.stop()
 
     return IngestResponse(
         status="processing",
         file_id=file_id,
-        num_chunks=len(documents),
-        splitter_type=splitter_type,
-        documents=documents,
+        num_chunks=len(chunks),
     )
