@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Generator, AsyncGenerator
 from fastapi import UploadFile
 from fastapi.testclient import TestClient
+import pytest_asyncio
 
 # Import your application components
 from rag_ingestor.adapters.loaders import (
@@ -110,7 +111,7 @@ def splitter_manager() -> SplitterManager:
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def message_queue() -> AsyncGenerator[InMemoryMessageQueue, None]:
     """Create and initialize an in-memory message queue."""
     queue = InMemoryMessageQueue()
