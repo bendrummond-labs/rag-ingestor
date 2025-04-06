@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from rag_ingestor.config import settings, logger
-from rag_ingestor.routes import router
+from rag_ingestor.api.routes import router
 from rag_ingestor.di_container import initialize_container, shutdown_container
 
 

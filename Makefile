@@ -7,3 +7,6 @@ lint:
 	poetry run ruff check src tests
 
 check: format lint
+
+test:
+	poetry run pytest tests
