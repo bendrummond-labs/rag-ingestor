@@ -5,7 +5,7 @@ from fastapi import (
     Query,
 )
 
-from rag_ingestor.schemas import IngestResponse
+from rag_ingestor.api.schemas import IngestResponse
 from rag_ingestor.di_container import (
     get_ingestion_service,
     get_loader_manager,
