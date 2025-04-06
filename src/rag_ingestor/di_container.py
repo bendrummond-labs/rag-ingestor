@@ -1,14 +1,18 @@
 import logging
 from typing import Dict, Any
 
-from rag_ingestor.adapters.loaders.loader_manager import LoaderManager
-from rag_ingestor.adapters.loaders.text_loader import TextLoader
-from rag_ingestor.adapters.loaders.pdf_loader import PDFLoader
-from rag_ingestor.adapters.loaders.csv_loader import CSVLoader
+from rag_ingestor.adapters.loaders import (
+    TextLoader,
+    PDFLoader,
+    CSVLoader,
+    LoaderManager,
+)
 
-from rag_ingestor.adapters.splitters.splitter_manager import SplitterManager
-from rag_ingestor.adapters.splitters.plain_splitter import PlainTextSplitter
-from rag_ingestor.adapters.splitters.markdown_splitter import MarkdownSplitter
+from rag_ingestor.adapters.splitters import (
+    SplitterManager,
+    MarkdownSplitter,
+    PlainTextSplitter,
+)
 
 from rag_ingestor.services.document_service import DocumentService
 from rag_ingestor.services.ingestion_service import IngestionService
@@ -130,3 +134,9 @@ def get_loader_manager() -> LoaderManager:
 def get_splitter_manager() -> SplitterManager:
     """Get the splitter manager from the container"""
     return container.get("splitter_manager")
+
+
+# Factory function to get the message queue
+def get_message_queue() -> MessageQueue:
+    """Get the message queue from the container"""
+    return container.get("message_queue")

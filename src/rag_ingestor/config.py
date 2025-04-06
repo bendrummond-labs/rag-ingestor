@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB default
 
     # Kafka settings
-    KAFKA_BROKER_URL: str = "localhost:9092"
     ENABLE_KAFKA: bool = True
+    KAFKA_BROKER_URL: str = "localhost:9092"
     KAFKA_TOPIC_EMBEDDINGS: str = "embedding-jobs"
 
     # Processing settings

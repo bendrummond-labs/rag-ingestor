@@ -5,7 +5,7 @@ from rag_ingestor.adapters.loaders.csv_loader import CSVLoader
 
 from rag_ingestor.services.document_service import DocumentService
 from rag_ingestor.services.ingestion_service import IngestionService
-from rag_ingestor.adapters.queue.factory import get_message_queue
+from rag_ingestor.di_container import get_message_queue
 
 
 def create_loader_manager() -> LoaderManager:
