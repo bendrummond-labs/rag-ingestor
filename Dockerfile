@@ -16,4 +16,4 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi
 
 # Run the FastAPI app
-CMD ["uvicorn", "rag_ingestor.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "-m", "rag_ingestor.main"]
