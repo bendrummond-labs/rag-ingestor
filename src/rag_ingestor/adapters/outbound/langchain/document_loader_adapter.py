@@ -24,7 +24,7 @@ class LangchainDocumentLoaderAdapter(ContentLoaderPort):
     }
 
     def __init__(self, custom_loaders: Optional[Dict[str, Type[BaseLoader]]] = None):
-        self.loader = {**self.LOADER_MAPPING}
+        self.loaders = {**self.LOADER_MAPPING}
         if custom_loaders:
             self.loaders.update(custom_loaders)
 
@@ -34,12 +34,12 @@ class LangchainDocumentLoaderAdapter(ContentLoaderPort):
 
         file_ext = source_path.suffix.lower()
 
-        if file_ext not in self.loader:
+        if file_ext not in self.loaders:
             raise ValueError(
-                f"Unsupported file type: {file_ext}. Supported types are: {list(self.loader.keys())}"
+                f"Unsupported file type: {file_ext}. Supported types are: {list(self.loaders.keys())}"
             )
 
-        loader_class = self.loader[file_ext]
+        loader_class = self.loaders[file_ext]
         loader = loader_class(str(source_path), **kwargs)
 
         documents = loader.load()
