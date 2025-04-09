@@ -10,11 +10,12 @@ and management.
 import os
 import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import UploadFile, HTTPException
 
-from rag_ingestor.domain.model import Content
+from rag_ingestor.domain.model import Content, ContentChunk
 from rag_ingestor.ports.outbound.content_loader_port import ContentLoaderPort
+from rag_ingestor.ports.outbound.text_chunking_port import TextChunkingPort
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -32,7 +33,11 @@ class DocumentService:
         document_loader: A port implementation for loading documents
     """
 
-    def __init__(self, document_loader: ContentLoaderPort):
+    def __init__(
+        self,
+        document_loader: ContentLoaderPort,
+        text_chunker: Optional[TextChunkingPort],
+    ):
         """
         Initialize the document service with required dependencies.
 
@@ -40,6 +45,7 @@ class DocumentService:
             document_loader: Implementation of the ContentLoaderPort
         """
         self.document_loader = document_loader
+        self.text_chunker = text_chunker
 
     def get_supported_extensions(self) -> List[str]:
         """
@@ -54,7 +60,10 @@ class DocumentService:
         return list(getattr(self.document_loader, "loaders", {}).keys())
 
     async def process_document(
-        self, file: UploadFile, temp_file_path: Path
+        self,
+        file: UploadFile,
+        temp_file_path: Path,
+        chunk_params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Process an uploaded document file.
@@ -77,14 +86,25 @@ class DocumentService:
         logger.info(f"Processing file: {file.filename}")
 
         try:
-            # Validate file extension
             self._validate_file_extension(file.filename)
 
-            # Load content from file
             contents: List[Content] = self._load_document_content(temp_file_path)
 
-            # Generate processing summary
-            return self._create_processing_summary(file.filename, contents)
+            chunks: List[ContentChunk] = []
+            if self.text_chunker:
+                for content in contents:
+                    content_chunks = self.text_chunker.chunk_content(
+                        content, chunk_params
+                    )
+                    chunks.extend(content_chunks)
+
+                logger.info(
+                    f"Created {len(chunks)} chunks from {len(contents)} content items"
+                )
+
+            result = self._create_processing_summary(file.filename, contents, chunks)
+
+            return result
 
         except HTTPException:
             # Re-raise HTTP exceptions without wrapping them
@@ -133,7 +153,7 @@ class DocumentService:
         return self.document_loader.load_content(file_path)
 
     def _create_processing_summary(
-        self, filename: str, contents: List[Content]
+        self, filename: str, contents: List[Content], chunks: List[ContentChunk] = None
     ) -> Dict[str, Any]:
         """
         Create a summary of document processing results.
@@ -141,13 +161,41 @@ class DocumentService:
         Args:
             filename: Name of the processed file
             contents: List of Content entities extracted from the document
+            chunks: Optional list of ContentChunk entities
 
         Returns:
             Dictionary containing processing statistics and information
         """
-        return {
+        summary = {
             "status": "success",
             "filename": filename,
             "content_count": len(contents),
             "total_characters": sum(len(content.text) for content in contents),
         }
+
+        if chunks:
+            summary.update(
+                {
+                    "chunk_count": len(chunks),
+                    "chunks": [
+                        {
+                            "chunk_id": str(chunk.id),
+                            "sequence_number": chunk.sequence_number,
+                            "chars": len(chunk.text),
+                        }
+                        for chunk in chunks[:5]
+                    ],
+                    "average_chunk_size": (
+                        sum(len(chunk.text) for chunk in chunks) / len(chunks)
+                        if chunks
+                        else 0
+                    ),
+                }
+            )
+
+            if len(chunks) > 5:
+                summary["chunks"].append(
+                    {"note": f"...and {len(chunks) - 5} more chunks"}
+                )
+
+        return summary
