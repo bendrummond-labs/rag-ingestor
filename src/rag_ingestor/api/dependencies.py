@@ -23,7 +23,16 @@ from rag_ingestor.application.services import DocumentService
 
 
 class Settings(BaseSettings):
-    """Application settings."""
+    """Global application settings."""
+
+    # Application settings
+    app_name: str = "rag-ingestor"
+    app_version: str = "0.1.0"
+    debug: bool = False
+
+    # Server settings
+    host: str = "0.0.0.0"
+    port: int = 8001
 
     # Message queue settings
     message_queue_type: str = "kafka"  # Options: "kafka", "inmemory"
@@ -37,9 +46,14 @@ class Settings(BaseSettings):
     chunking_chunk_size: int = 1000
     chunking_chunk_overlap: int = 200
 
+    # File storage settings
+    temp_file_dir: str = "/tmp"
+    max_file_size_mb: int = 50
+
     class Config:
         env_prefix = "RAG_"
         env_file = ".env"
+        env_file_encoding = "utf-8"
 
 
 @lru_cache
