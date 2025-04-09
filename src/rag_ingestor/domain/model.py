@@ -97,3 +97,57 @@ class Content:
         self.metadata = (
             ContentMetadata.from_dict(metadata) if metadata else ContentMetadata()
         )
+
+
+# src/rag_ingestor/domain/model.py (to be added)
+@dataclass
+class ContentChunk:
+    """Domain entity representing a chunk of processed content."""
+
+    id: ContentId
+    content_id: ContentId
+    text: str
+    metadata: ContentMetadata
+    sequence_number: int
+
+    def __init__(
+        self,
+        text: str,
+        content_id: ContentId,
+        sequence_number: int,
+        metadata: Optional[Dict[str, Any]] = None,
+        id: Optional[ContentId] = None,
+    ):
+        self.id = id or ContentId()
+        self.content_id = content_id
+        self.text = text
+        self.sequence_number = sequence_number
+
+        chunk_metadata = metadata or {}
+        if not isinstance(chunk_metadata, ContentMetadata):
+            chunk_metadata = ContentMetadata.from_dict(chunk_metadata)
+        self.metadata = chunk_metadata
+
+        self.metadata.custom_metadata["chunk_index"] = sequence_number
+        self.metadata.custom_metadata["parent_content_id"] = str(content_id)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert chunk to dictionary format for serialization."""
+        return {
+            "id": str(self.id),
+            "content_id": str(self.content_id),
+            "text": self.text,
+            "sequence_number": self.sequence_number,
+            "metadata": self.metadata.to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ContentChunk":
+        """Create chunk from dictionary."""
+        return cls(
+            text=data["text"],
+            content_id=ContentId(UUID(data["content_id"])),
+            sequence_number=data["sequence_number"],
+            metadata=data.get("metadata"),
+            id=ContentId(UUID(data["id"])) if "id" in data else None,
+        )
