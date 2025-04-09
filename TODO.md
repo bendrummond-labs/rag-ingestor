@@ -1,1 +1,0 @@
--   move splitter.create_documents to a Kafka preprocessing service
