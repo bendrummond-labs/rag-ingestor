@@ -1,7 +1,7 @@
 """
 Application services for document processing in the RAG ingestor.
 
-This module provides the application service layer that orchestrates 
+This module provides the application service layer that orchestrates
 domain operations and interfaces with external systems. It contains
 services that implement use cases for document ingestion, processing,
 and management.
