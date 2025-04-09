@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import List, Dict, Optional, Type, Union
-from langchain.document_loaders import (
+from langchain_community.document_loaders import (
     TextLoader,
     PyPDFLoader,
     UnstructuredHTMLLoader,
@@ -28,18 +28,19 @@ class LangchainDocumentLoaderAdapter(ContentLoaderPort):
         if custom_loaders:
             self.loaders.update(custom_loaders)
 
-    def load_content(self, source: Union[Path, str], **kwargs) -> List[Content]:
+    def load_content(
+        self, source: Union[Path, str], type: str, **kwargs
+    ) -> List[Content]:
 
         source_path = Path(source) if isinstance(source, str) else source
+        print(f"Loading content from: {source_path}")
 
-        file_ext = source_path.suffix.lower()
-
-        if file_ext not in self.loaders:
+        if type not in self.loaders:
             raise ValueError(
-                f"Unsupported file type: {file_ext}. Supported types are: {list(self.loaders.keys())}"
+                f"Unsupported file type: {type}. Supported types are: {list(self.loaders.keys())}"
             )
 
-        loader_class = self.loaders[file_ext]
+        loader_class = self.loaders[type]
         loader = loader_class(str(source_path), **kwargs)
 
         documents = loader.load()

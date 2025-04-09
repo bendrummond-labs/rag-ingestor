@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 from typing import List
@@ -8,6 +9,9 @@ from rag_ingestor.adapters.outbound.langchain.document_loader_adapter import (
     LangchainDocumentLoaderAdapter,
 )
 from rag_ingestor.domain.model import Content
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="RAG Ingestor",
@@ -28,13 +32,23 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.get("/ingest", response_model=dict)
+@app.post("/ingest", response_model=dict)
 async def ingest_document(file: UploadFile = File(...)):
     """
     Ingest a document into the RAG system.
     """
+
+    logger.info(f"Received file: {file.filename}")
+
     file_extension = os.path.splitext(file.filename)[1].lower()
+    if not file_extension:
+        raise HTTPException(
+            status_code=400, detail="File does not have a valid extension."
+        )
+    logger.info(f"Detected extension: '{file_extension}'")
+
     supported_extensions = list(document_loader.loaders.keys())
+    logger.info(f"Supported extensions: {supported_extensions}")
 
     if file_extension not in supported_extensions:
         raise HTTPException(
@@ -43,13 +57,14 @@ async def ingest_document(file: UploadFile = File(...)):
         )
 
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-
         try:
             content = await file.read()
             temp_file.write(content)
             temp_file.flush()
 
-            contents: List[Content] = document_loader.load_content(temp_file.name)
+            contents: List[Content] = document_loader.load_content(
+                temp_file.name, type=file_extension
+            )
 
             return {
                 "status": "success",
