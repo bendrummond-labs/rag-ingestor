@@ -55,7 +55,6 @@ async def ingest_document(
         if chunk_overlap is not None:
             chunk_params["chunk_overlap"] = chunk_overlap
         if splitter_type is not None:
-            # We'll handle this by recreating the chunker in the service
             if splitter_type not in ["recursive_character", "token"]:
                 raise HTTPException(
                     status_code=400,
