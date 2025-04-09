@@ -2,7 +2,7 @@ from abc import ABC
 from pathlib import Path
 from typing import List
 
-from src.rag_ingestor.domain.model import Content
+from rag_ingestor.domain.model import Content
 
 
 class ContentLoaderPort(ABC):

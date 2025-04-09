@@ -10,7 +10,7 @@ from langchain_community.document_loaders import (
 from langchain.document_loaders.base import BaseLoader
 
 from rag_ingestor.ports.outbound.content_loader_port import ContentLoaderPort
-from src.rag_ingestor.domain.model import Content
+from rag_ingestor.domain.model import Content
 
 
 class LangchainDocumentLoaderAdapter(ContentLoaderPort):
