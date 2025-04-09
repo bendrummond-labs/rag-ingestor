@@ -99,7 +99,6 @@ class Content:
         )
 
 
-# src/rag_ingestor/domain/model.py (to be added)
 @dataclass
 class ContentChunk:
     """Domain entity representing a chunk of processed content."""
