@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 import tempfile
 from typing import List
 import uuid
@@ -56,15 +57,15 @@ async def ingest_document(file: UploadFile = File(...)):
             detail=f"Unsupported file type: {file_extension}. Supported types are: {supported_extensions}",
         )
 
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=file_extension, delete=False) as temp_file:
         try:
             content = await file.read()
             temp_file.write(content)
             temp_file.flush()
 
-            contents: List[Content] = document_loader.load_content(
-                temp_file.name, type=file_extension
-            )
+            file_path = Path(temp_file.name)
+
+            contents: List[Content] = document_loader.load_content(file_path)
 
             return {
                 "status": "success",
@@ -79,7 +80,6 @@ async def ingest_document(file: UploadFile = File(...)):
                 status_code=500, detail=f"Error processing document: {str(e)}"
             )
         finally:
-            # Clean up the temp file
             os.unlink(temp_file.name)
 
 
