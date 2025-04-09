@@ -12,20 +12,14 @@ from fastapi import Depends
 from pydantic_settings import BaseSettings
 
 
-from rag_ingestor.adapters.outbound.inmemory.message_queue_adapter import (
+from rag_ingestor.adapters.outbound import (
     InMemoryMessageQueueAdapter,
-)
-from rag_ingestor.application.services import DocumentService
-from rag_ingestor.adapters.outbound.langchain.document_loader_adapter import (
     LangchainDocumentLoaderAdapter,
-)
-from rag_ingestor.adapters.outbound.langchain.text_chunking_adapter import (
     LangchainTextChunkingAdapter,
-)
-from rag_ingestor.ports.outbound.message_queue_port import MessageQueuePort
-from rag_ingestor.adapters.outbound.kafka.message_queue_adapter import (
     KafkaMessageQueueAdapter,
 )
+from rag_ingestor.ports.outbound.message_queue_port import MessageQueuePort
+from rag_ingestor.application.services import DocumentService
 
 
 class Settings(BaseSettings):
