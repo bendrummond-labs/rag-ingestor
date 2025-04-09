@@ -2,13 +2,14 @@ from typing import Optional
 import uuid
 import os
 import tempfile
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pathlib import Path
 
 from rag_ingestor.adapters.outbound.langchain.text_chunking_adapter import (
     LangchainTextChunkingAdapter,
 )
-from rag_ingestor.api.dependencies import get_document_service
+from rag_ingestor.api.dependencies import get_document_service, get_message_queue
+from rag_ingestor.ports.outbound.message_queue_port import MessageQueuePort
 
 router = APIRouter()
 
@@ -32,12 +33,14 @@ async def ingest_document(
     splitter_type: Optional[str] = Query(
         None, description="Type of text splitter to use (recursive_character or token)"
     ),
+    publish_chunks: bool = Query(True, description="Publish chunks to message queue"),
+    message_queue: MessageQueuePort = Depends(get_message_queue),
 ):
     """
     Ingest a document into the RAG system.
     """
 
-    document_service = get_document_service()
+    document_service = get_document_service(message_queue=message_queue)
 
     file_extension = os.path.splitext(file.filename)[1].lower()
     if not file_extension:
@@ -86,7 +89,7 @@ async def ingest_document(
 
             # Process the document
             result = await document_service.process_document(
-                file, file_path, chunk_params
+                file, file_path, chunk_params, publish_chunks
             )
 
             # Add document ID
@@ -136,3 +139,43 @@ async def get_chunking_options():
             },
         },
     }
+
+
+@router.get("/queue-status")
+async def get_queue_status(
+    message_queue: MessageQueuePort = Depends(get_message_queue),
+):
+    """
+    Get status information about the message queue.
+
+    This endpoint is primarily useful for diagnostics and monitoring.
+    For in-memory queues, it returns message counts; for Kafka, it returns
+    connection status.
+
+    Returns:
+        Status information about the message queue
+    """
+    # Different behavior based on queue implementation
+    if hasattr(message_queue, "get_chunks"):
+        # This is an InMemoryMessageQueueAdapter
+        return {
+            "queue_type": "in-memory",
+            "chunks_count": len(message_queue.get_chunks()),
+            "events_count": len(message_queue.get_events()),
+            "status": (
+                "active" if not getattr(message_queue, "is_closed", False) else "closed"
+            ),
+        }
+    else:
+        # Assume it's a KafkaMessageQueueAdapter or similar
+        return {
+            "queue_type": "kafka",
+            "bootstrap_servers": getattr(message_queue, "bootstrap_servers", "unknown"),
+            "chunks_topic": getattr(message_queue, "chunks_topic", "document-chunks"),
+            "events_topic": getattr(message_queue, "events_topic", "system-events"),
+            "status": (
+                "connected"
+                if getattr(message_queue, "producer", None) is not None
+                else "disconnected"
+            ),
+        }

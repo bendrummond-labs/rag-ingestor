@@ -8,6 +8,13 @@ by API endpoints, using FastAPI's dependency injection system.
 from functools import lru_cache
 from typing import Dict, Any, Optional
 
+from fastapi import Depends
+from pydantic_settings import BaseSettings
+
+
+from rag_ingestor.adapters.outbound.inmemory.message_queue_adapter import (
+    InMemoryMessageQueueAdapter,
+)
 from rag_ingestor.application.services import DocumentService
 from rag_ingestor.adapters.outbound.langchain.document_loader_adapter import (
     LangchainDocumentLoaderAdapter,
@@ -15,6 +22,41 @@ from rag_ingestor.adapters.outbound.langchain.document_loader_adapter import (
 from rag_ingestor.adapters.outbound.langchain.text_chunking_adapter import (
     LangchainTextChunkingAdapter,
 )
+from rag_ingestor.ports.outbound.message_queue_port import MessageQueuePort
+from rag_ingestor.adapters.outbound.kafka.message_queue_adapter import (
+    KafkaMessageQueueAdapter,
+)
+
+
+class Settings(BaseSettings):
+    """Application settings."""
+
+    # Message queue settings
+    message_queue_type: str = "kafka"  # Options: "kafka", "inmemory"
+    kafka_bootstrap_servers: str = "localhost:19092"
+    kafka_chunks_topic: str = "document-chunks"
+    kafka_events_topic: str = "system-events"
+
+    # Chunking settings
+    chunking_enabled: bool = True
+    chunking_splitter_type: str = "recursive_character"
+    chunking_chunk_size: int = 1000
+    chunking_chunk_overlap: int = 200
+
+    class Config:
+        env_prefix = "RAG_"
+        env_file = ".env"
+
+
+@lru_cache
+def get_settings():
+    """
+    Get application settings from environment variables.
+
+    Returns:
+        Settings object
+    """
+    return Settings()
 
 
 # Default configuration
@@ -66,9 +108,35 @@ def get_text_chunking_adapter(
     )
 
 
+async def get_message_queue(
+    settings: Settings = Depends(get_settings),
+) -> MessageQueuePort:
+    """
+    Create and configure a message queue adapter.
+
+    Args:
+        settings: Application settings
+
+    Returns:
+        Configured MessageQueuePort implementation
+    """
+    if settings.message_queue_type == "kafka":
+        adapter = KafkaMessageQueueAdapter(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            chunks_topic=settings.kafka_chunks_topic,
+            events_topic=settings.kafka_events_topic,
+        )
+        await adapter.initialize()
+        return adapter
+    else:
+        # Default to in-memory for testing and development
+        return InMemoryMessageQueueAdapter()
+
+
 def get_document_service(
     chunking_enabled: bool = DEFAULT_CONFIG["chunking"]["enabled"],
     chunking_config: Optional[Dict[str, Any]] = None,
+    message_queue: Optional[MessageQueuePort] = None,
 ):
     """
     Create and configure a document service.
@@ -76,6 +144,7 @@ def get_document_service(
     Args:
         chunking_enabled: Whether to enable text chunking
         chunking_config: Custom configuration for text chunking
+        message_queue: Optional message queue for publishing events
 
     Returns:
         Configured DocumentService
@@ -101,4 +170,8 @@ def get_document_service(
         )
 
     # Create and return service
-    return DocumentService(document_loader=document_loader, text_chunker=text_chunker)
+    return DocumentService(
+        document_loader=document_loader,
+        text_chunker=text_chunker,
+        message_queue=message_queue,
+    )

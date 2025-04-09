@@ -16,6 +16,7 @@ from fastapi import UploadFile, HTTPException
 from rag_ingestor.domain.model import Content, ContentChunk
 from rag_ingestor.ports.outbound.content_loader_port import ContentLoaderPort
 from rag_ingestor.ports.outbound.text_chunking_port import TextChunkingPort
+from rag_ingestor.ports.outbound.message_queue_port import MessageQueuePort
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -31,21 +32,27 @@ class DocumentService:
 
     Attributes:
         document_loader: A port implementation for loading documents
+        text_chunker: A port implementation for chunking text content
+        message_queue: Optional port implementation for publishing messages
     """
 
     def __init__(
         self,
         document_loader: ContentLoaderPort,
-        text_chunker: Optional[TextChunkingPort],
+        text_chunker: Optional[TextChunkingPort] = None,
+        message_queue: Optional[MessageQueuePort] = None,
     ):
         """
         Initialize the document service with required dependencies.
 
         Args:
             document_loader: Implementation of the ContentLoaderPort
+            text_chunker: Implementation of the TextChunkingPort
+            message_queue: Optional implementation of the MessageQueuePort
         """
         self.document_loader = document_loader
         self.text_chunker = text_chunker
+        self.message_queue = message_queue
 
     def get_supported_extensions(self) -> List[str]:
         """
@@ -64,6 +71,7 @@ class DocumentService:
         file: UploadFile,
         temp_file_path: Path,
         chunk_params: Optional[Dict[str, Any]] = None,
+        publish_chunks: bool = True,
     ) -> Dict[str, Any]:
         """
         Process an uploaded document file.
@@ -71,11 +79,15 @@ class DocumentService:
         This method handles the complete document processing workflow:
         1. Validates the file type
         2. Loads the document content
-        3. Prepares a summary of the processing results
+        3. Chunks the content if requested
+        4. Publishes chunks to the message queue
+        5. Prepares a summary of the processing results
 
         Args:
             file: The uploaded file metadata
             temp_file_path: Path to the temporary file on disk
+            chunk_params: Optional parameters for text chunking
+            publish_chunks: Whether to publish chunks to the message queue
 
         Returns:
             Dictionary containing processing results and statistics
@@ -101,6 +113,43 @@ class DocumentService:
                 logger.info(
                     f"Created {len(chunks)} chunks from {len(contents)} content items"
                 )
+
+                # Publish chunks to message queue if enabled
+                if chunks and publish_chunks and self.message_queue:
+                    try:
+                        publish_result = await self.message_queue.publish_chunks(
+                            chunks,
+                            metadata={
+                                "filename": file.filename,
+                                "content_type": file.content_type,
+                                "file_size": file.size,
+                            },
+                        )
+                        logger.info(f"Published chunks: {publish_result}")
+                    except Exception as e:
+                        logger.error(
+                            f"Error publishing chunks: {str(e)}", exc_info=True
+                        )
+                        # Continue processing even if publishing fails
+
+            # Publish document processed event
+            if self.message_queue:
+                try:
+                    await self.message_queue.publish_event(
+                        "document.processed",
+                        {
+                            "filename": file.filename,
+                            "content_type": file.content_type,
+                            "file_size": file.size,
+                            "content_count": len(contents),
+                            "chunk_count": len(chunks),
+                        },
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error publishing document.processed event: {str(e)}",
+                        exc_info=True,
+                    )
 
             result = self._create_processing_summary(file.filename, contents, chunks)
 
