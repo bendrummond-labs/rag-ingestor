@@ -98,3 +98,42 @@ async def ingest_document(
         finally:
             # Clean up the temporary file
             os.unlink(temp_file.name)
+
+
+@router.get("/supported-extensions")
+async def get_supported_extensions():
+    """
+    Get the list of supported file extensions.
+
+    Returns:
+        List of supported file extensions
+    """
+    document_service = get_document_service()
+    return {"supported_extensions": document_service.get_supported_extensions()}
+
+
+@router.get("/chunking-options")
+async def get_chunking_options():
+    """
+    Get available text chunking options.
+
+    Returns:
+        Information about available chunking options
+    """
+    return {
+        "splitter_types": ["recursive_character", "token"],
+        "default_chunk_size": 1000,
+        "default_chunk_overlap": 200,
+        "recommendations": {
+            "text_documents": {
+                "splitter_type": "recursive_character",
+                "chunk_size": 1000,
+                "chunk_overlap": 200,
+            },
+            "code_or_structured_data": {
+                "splitter_type": "token",
+                "chunk_size": 500,
+                "chunk_overlap": 50,
+            },
+        },
+    }
